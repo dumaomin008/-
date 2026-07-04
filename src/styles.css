@@ -799,6 +799,52 @@ textarea {
   padding: 18px;
 }
 
+.empty-report {
+  display: grid;
+  min-height: 520px;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 56px 28px;
+  text-align: center;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(79, 70, 229, 0.12), transparent 34%),
+    radial-gradient(circle at 80% 20%, rgba(124, 58, 237, 0.1), transparent 30%),
+    #ffffff;
+}
+
+.empty-report-icon {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  color: var(--primary);
+  border: 1px solid #c7d2fe;
+  border-radius: 18px;
+  background: #eef2ff;
+  box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.15);
+}
+
+.empty-report h1 {
+  max-width: 520px;
+  color: #0f172a;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.empty-report p {
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.empty-report .primary-button {
+  margin-top: 6px;
+}
+
 .studio-toolbar {
   justify-content: space-between;
   gap: 16px;

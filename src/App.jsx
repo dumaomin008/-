@@ -236,17 +236,18 @@ async function apiRequest(path, options = {}) {
 }
 
 function normalizeWorkspace(workspace = {}) {
+  const candidates = Array.isArray(workspace.candidates) ? workspace.candidates : [];
   return {
     jobDescription: workspace.jobDescription || defaultJobDescription,
     weights: Object.keys(workspace.weights || {}).length > 0 ? workspace.weights : initialWeights,
     files: Array.isArray(workspace.files) ? workspace.files : [],
-    candidates: Array.isArray(workspace.candidates) && workspace.candidates.length > 0 ? workspace.candidates : starterCandidates,
-    selectedId: workspace.selectedId || workspace.candidates?.[0]?.id || starterCandidates[0].id,
+    candidates,
+    selectedId: workspace.selectedId || candidates[0]?.id || "",
   };
 }
 
 function normalizeCandidates(candidates) {
-  if (!Array.isArray(candidates) || candidates.length === 0) return starterCandidates;
+  if (!Array.isArray(candidates) || candidates.length === 0) return [];
 
   return candidates.map((candidate, index) => ({
     ...starterCandidates[index % starterCandidates.length],
@@ -264,6 +265,23 @@ function normalizeCandidates(candidates) {
     evidence: candidate.evidence?.length ? candidate.evidence : ["候选人简历中出现了岗位相关技术关键词。"],
     questions: candidate.questions?.length ? candidate.questions : ["请结合最近项目说明你的职责边界和技术决策。"],
   }));
+}
+
+function EmptyReport({ onShowMessage }) {
+  return (
+    <main className="report-studio empty-report" id="report">
+      <div className="empty-report-icon" aria-hidden="true">
+        <ClipboardList size={28} />
+      </div>
+      <span className="eyebrow">等待生成报告</span>
+      <h1>上传简历后开始筛选</h1>
+      <p>登录后的工作台不再展示示例候选人。填写岗位需求、上传真实简历并生成报告后，这里会显示候选人评估、匹配依据、风险点和面试追问。</p>
+      <button className="primary-button" type="button" onClick={() => onShowMessage("请先上传至少 1 份简历，再生成适配报告")}>
+        <CloudUpload size={18} />
+        上传简历后生成报告
+      </button>
+    </main>
+  );
 }
 
 function HealthBadge({ health }) {
@@ -782,6 +800,7 @@ function ReportStudio({ candidate, compareMode, onCompareModeChange, onPendingAc
 
 function CandidateList({ candidates, selectedId, onSelectCandidate, onPendingAction }) {
   const [query, setQuery] = useState("");
+  const hasCandidates = candidates.length > 0;
   const normalizedQuery = query.trim().toLowerCase();
   const visibleCandidates = normalizedQuery
     ? candidates.filter((candidate) => {
@@ -821,38 +840,44 @@ function CandidateList({ candidates, selectedId, onSelectCandidate, onPendingAct
         />
       </label>
 
-      <div className="candidate-filters">
-        <button type="button" onClick={() => onPendingAction("排序")}>
-          综合排序
-          <ChevronDown size={14} />
-        </button>
-        <button type="button" onClick={() => onPendingAction("状态筛选")}>
-          全部状态
-          <ChevronDown size={14} />
-        </button>
-      </div>
+      {hasCandidates ? (
+        <>
+          <div className="candidate-filters">
+            <button type="button" onClick={() => onPendingAction("排序")}>
+              综合排序
+              <ChevronDown size={14} />
+            </button>
+            <button type="button" onClick={() => onPendingAction("状态筛选")}>
+              全部状态
+              <ChevronDown size={14} />
+            </button>
+          </div>
 
-      <section className="distribution">
-        <h3>匹配度分布</h3>
-        <div className="distribution-bars" aria-label="匹配度分布图">
-          <span style={{ height: "70%" }} />
-          <span style={{ height: "58%" }} />
-          <span style={{ height: "42%" }} />
-          <span style={{ height: "28%" }} />
-          <span style={{ height: "18%" }} />
-        </div>
-        <div className="distribution-labels">
-          <span>90+</span>
-          <span>80+</span>
-          <span>70+</span>
-          <span>60+</span>
-          <span>&lt;60</span>
-        </div>
-      </section>
+          <section className="distribution">
+            <h3>匹配度分布</h3>
+            <div className="distribution-bars" aria-label="匹配度分布图">
+              <span style={{ height: "70%" }} />
+              <span style={{ height: "58%" }} />
+              <span style={{ height: "42%" }} />
+              <span style={{ height: "28%" }} />
+              <span style={{ height: "18%" }} />
+            </div>
+            <div className="distribution-labels">
+              <span>90+</span>
+              <span>80+</span>
+              <span>70+</span>
+              <span>60+</span>
+              <span>&lt;60</span>
+            </div>
+          </section>
+        </>
+      ) : null}
 
       <div className="ranking-list">
         {visibleCandidates.length === 0 ? (
-          <p className="empty-hint search-empty">没有匹配的候选人</p>
+          <p className="empty-hint search-empty">
+            {hasCandidates ? "没有匹配的候选人" : "生成报告后，候选人会按匹配度显示在这里。"}
+          </p>
         ) : null}
         {visibleCandidates.map((candidate, index) => {
           const active = candidate.id === selectedId;
@@ -885,6 +910,7 @@ function CandidateList({ candidates, selectedId, onSelectCandidate, onPendingAct
 
 function CompareBand({ candidates, onSelectCandidate, onPendingAction }) {
   const topCandidates = candidates.slice(0, 3);
+  if (topCandidates.length === 0) return null;
 
   return (
     <section className="compare-band">
@@ -975,7 +1001,7 @@ function ResumePreviewDrawer({ candidate, file, onClose, onCopyText }) {
   const parsedText = file?.parsedText?.trim() || "";
   const fileUrl = useMemo(() => base64ToBlobUrl(file?.data, file?.type), [file?.data, file?.type]);
   const canPreviewOriginal = fileUrl && file?.ext === "pdf";
-  const fileStatus = file?.status || (file ? "已上传" : "样例数据");
+  const fileStatus = file?.status || (file ? "已上传" : "未关联原件");
   const sourceLabel = file?.name || candidate?.fileName || "未关联原始文件";
 
   useEffect(() => {
@@ -1063,11 +1089,11 @@ function ResumePreviewDrawer({ candidate, file, onClose, onCopyText }) {
             ) : (
               <div className="resume-empty-original">
                 <FileText size={26} />
-                <strong>{file ? "当前格式以解析文本查看" : "当前为样例候选人"}</strong>
+                <strong>{file ? "当前格式以解析文本查看" : "未关联原始文件"}</strong>
                 <span>
                   {file
                     ? "DOCX、TXT、MD 简历会优先展示解析后的文本内容。"
-                    : "上传并生成报告后，这里会关联候选人的原始简历文件。"}
+                    : "如果候选人没有匹配到原始文件，请回到工作台重新上传并生成报告。"}
                 </span>
               </div>
             )}
@@ -1123,8 +1149,8 @@ export function App() {
   const [jobDescription, setJobDescription] = useState(defaultJobDescription);
   const [weights, setWeights] = useState(initialWeights);
   const [files, setFiles] = useState([]);
-  const [candidates, setCandidates] = useState(starterCandidates);
-  const [selectedId, setSelectedId] = useState(starterCandidates[0].id);
+  const [candidates, setCandidates] = useState([]);
+  const [selectedId, setSelectedId] = useState("");
   const [health, setHealth] = useState({ configured: false, model: "deepseek-v4-flash" });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [compareMode, setCompareMode] = useState(false);
@@ -1274,8 +1300,8 @@ export function App() {
     setWorkspaceLoaded(false);
     setHistory([]);
     setFiles([]);
-    setCandidates(starterCandidates);
-    setSelectedId(starterCandidates[0].id);
+    setCandidates([]);
+    setSelectedId("");
     setJobDescription(defaultJobDescription);
     setWeights(initialWeights);
     setResumePreviewId("");
@@ -1339,7 +1365,7 @@ export function App() {
     }
 
     if (files.length === 0) {
-      showToast("请先上传至少 1 份简历，右侧样例报告可直接预览");
+      showToast("请先上传至少 1 份简历，再生成适配报告");
       return;
     }
 
@@ -1368,7 +1394,7 @@ export function App() {
       const savedWorkspace = normalizeWorkspace(result.workspace || { candidates: result.candidates });
       const nextCandidates = normalizeCandidates(savedWorkspace.candidates);
       setCandidates(nextCandidates);
-      setSelectedId(savedWorkspace.selectedId || nextCandidates[0]?.id);
+      setSelectedId(savedWorkspace.selectedId || nextCandidates[0]?.id || "");
       setFiles(savedWorkspace.files);
       setHistory(result.history || []);
       const hasDeepSeekFallback = result.extractedFiles?.some((file) => file.status?.includes("DeepSeek"));
@@ -1526,13 +1552,17 @@ export function App() {
         />
 
         <section className="workspace-column">
-          <ReportStudio
-            candidate={selectedCandidate}
-            compareMode={compareMode}
-            onCompareModeChange={setCompareMode}
-            onPendingAction={showPendingAction}
-            onViewResume={(candidate) => setResumePreviewId(candidate.id)}
-          />
+          {selectedCandidate ? (
+            <ReportStudio
+              candidate={selectedCandidate}
+              compareMode={compareMode}
+              onCompareModeChange={setCompareMode}
+              onPendingAction={showPendingAction}
+              onViewResume={(candidate) => setResumePreviewId(candidate.id)}
+            />
+          ) : (
+            <EmptyReport onShowMessage={showToast} />
+          )}
           <CompareBand candidates={candidates} onSelectCandidate={setSelectedId} onPendingAction={showPendingAction} />
         </section>
 
