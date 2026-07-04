@@ -12,3 +12,4 @@ When implementing from a selected generated mock, treat that image as the source
 - The MySQL database should keep both app-friendly JSON snapshots and Navicat-manageable normalized tables for resumes, analysis runs, candidates, score breakdowns, tags, strengths, risks, evidence, and interview questions.
 - MySQL tables and columns should keep Chinese COMMENT metadata so Navicat can show readable business meanings for every managed field.
 - The backend should support Supabase Postgres as a production database option via server-side connection strings, while keeping MySQL as the local/Navicat-friendly default. Frontend code should continue calling the Node `/api/*` endpoints and must not receive database passwords or service role keys.
+- For this workspace, backend development and verification should use the local database by default. Supabase should remain an optional production target, not the default development database.
